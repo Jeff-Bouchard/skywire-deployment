@@ -1,0 +1,15 @@
+[submodule "skywire"]
+	path = skywire
+	url = https://github.com/skycoin/skywire.git
+[submodule "dmsg"]
+	path = dmsg
+	url = https://github.com/skycoin/dmsg.git
+[submodule "skywire-services"]
+	path = skywire-services
+	url = https://github.com/skycoin/skywire-services.git
+[submodule "skycoin-service-discovery"]
+	path = skycoin-service-discovery
+	url = https://github.com/skycoin/skycoin-service-discovery.git
+[submodule "skywire-utilities"]
+	path = skywire-utilities
+	url = https://github.com/skycoin/skywire-utilities.git
