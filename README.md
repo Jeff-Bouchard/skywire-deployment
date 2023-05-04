@@ -47,14 +47,14 @@ Note that some binaries may have gcc / libc6 dependency unless statically compil
 ## Runtime Dependencies by Service
 
 ### Redis
-address-resolver
-network-monitor
-dmsg-discovery
+* address-resolver
+* network-monitor
+* dmsg-discovery
 
 ### Postgres
-transport-discovery
-route-finder
-service-discovery
+* transport-discovery
+* route-finder
+* service-discovery
 
 #### DB Setup
 
@@ -92,11 +92,11 @@ All tables created automatically.
 
 A list of endpoints corresponding to some of these services in the current deployment
 
-sd.skycoin.com/api/services?type=proxy
-ar.skywire.skycoin.com/transports
-tpd.skywire.skycoin.com/all-transports
-dmsgd.skywire.skycoin.com/dmsg-discovery/entries
-rf.skywire.skycoin.com/
+* sd.skycoin.com/api/services?type=proxy
+* ar.skywire.skycoin.com/transports
+* tpd.skywire.skycoin.com/all-transports
+* dmsgd.skywire.skycoin.com/dmsg-discovery/entries
+* rf.skywire.skycoin.com/
 
 
 ## Key generation
