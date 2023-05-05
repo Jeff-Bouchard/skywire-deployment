@@ -214,6 +214,7 @@ cat dmsg-config.json | dmsg-server start -c STDIN
 __The port which the dmsg server is running on must be forwarded or otherwise accessible for public servers.__
 
 ## Route `setup-node`
+[setup-node](https://github.com/skycoin/skywire/tree/develop/cmd/setup-node)
 
 Running route setup-node requires a config as follows:
 ```
