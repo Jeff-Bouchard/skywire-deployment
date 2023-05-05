@@ -16,7 +16,7 @@ Dependencies: [go](https://go.dev/) [goimports](https://pkg.go.dev/golang.org/x/
 For any given submodule repository, included is a Makefile with directives such as `format` and `check`.
 `make format check` is currently used by the CI to check pull requests.
 
-`make format check` executes a variation of the following commands
+`make format check` executes a variation of the following commands:
 ```
 go mod tidy -v
 [[ -d pkg ]] && goimports -w -local github.com/skycoin/$(basename $(pwd)) ./pkg
@@ -34,12 +34,22 @@ The flags used for `go test` may vary from repo to repo
 
 Dependencies: [go](https://go.dev/)
 
-For any given submodule repository (except skywire-utilities) included is a Makefile with a `build` directive
+For any given submodule repository (except skywire-utilities) included is a Makefile with a `build` directive.
 
 `make build` executes `go build` for all the binaries that can be built from .go files in `./cmd` subdirectories, for example
 
 ```
-	go build ./cmd/skywire-visor
+cd skywire
+go build ./cmd/skywire-visor
+cd ..
+```
+
+OR, using `go run` instead
+
+```
+cd skywire
+go run ./cmd/skywire-visor --help
+go run ./cmd/skywire-cli --help
 ```
 
 Note that some binaries may have gcc / libc6 dependency unless statically compiled with musl.
@@ -48,35 +58,39 @@ Note that some binaries may have gcc / libc6 dependency unless statically compil
 
 ### Redis
 * address-resolver
+* transport-discovery
 * network-monitor
 * dmsg-discovery
+* service-discovery
+
+#### Redis setup
+
+Redis setup simply entails installing redis and starting the service.
 
 ### Postgres
 * transport-discovery
 * route-finder
 * service-discovery
 
-#### DB Setup
+#### Postgres DB Setup
 
-Some services use postgresql.
+Some services use postgresql. The database setup is included in this document for each service which requires it.
 
-Run postgresql, make a database with UTF-8 character-set
+As a brief overview of the process, one must run postgresql, and make a database with UTF-8 character-set. The name of the database is inconsequential. The database name as well as the postgres credentials are specified via environmental variables
 
-Pass the database, user, and password as envs
-
+__Pass the database, user, and password as envs__
 ```
 export PG_USER=username
 export PG_PASSWORD=pass
 export PG_DATABASE=sampledb
 ```
 
-Specify the postgres host and port via flags
-
+__Specify the postgres host and port via flags__
 ```
 route-finder --pg-host localhost --pg-port 5432
 ```
 
-All tables created automatically.
+__All tables are created automatically.__
 
 
 ## Required Services
@@ -90,7 +104,7 @@ All tables created automatically.
 * service-discovery
 * setup-node
 
-A list of endpoints corresponding to some of these services in the current deployment
+A list of endpoints corresponding to some of these services in the current deployment is provided here for reference:
 
 * sd.skycoin.com/api/services?type=proxy
 * ar.skywire.skycoin.com/transports
@@ -99,17 +113,20 @@ A list of endpoints corresponding to some of these services in the current deplo
 * rf.skywire.skycoin.com/
 
 
-## Key generation
+## Key generation for services
 
-Public/secret keypairs for all services have identical format can can be used interchangeably. There are multiple ways of potentially generating these, but for the sake of brevity the following command is suggested
+Public/secret keypairs for all services have identical format can can be used interchangeably. There are multiple ways of potentially generating these, for example with skywire-cli:
 
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee dmsgd-config.json
-grep -m1 "sk" dmsgd-config.json | cut -d '"' -f4 | tee -a dmsgd-config.json
+skywire-cli config gen -n | head -n4 | tail -n2
 ```
 
-those services which accept a secret key can then be run as follows
+A utility called `keys-gen` is included with skywire-services and can be used, which prints the public and secret key.
+
+The keypair can be written to a file and used by a service which accepts it in the following way with keys-gen
+
 ```
+keys-gen | tee dmsgd-config.json
 dmsg-discovery --sk $(tail -n1 dmsgd-config.json)
 ```
 
@@ -119,6 +136,7 @@ The following endpoint is queried by the visor on config gen:
 https://conf.skywire.skycoin.com/
 
 This endpoint contains json which will become part of the visor's config
+the following file is created manually to reflect your deployment
 ```
 {
   "dmsg_discovery": "http://dmsgd.skywire.skycoin.com",
@@ -144,19 +162,24 @@ This endpoint contains json which will become part of the visor's config
 }
 ```
 
-This endpoint is used to avoid relying on hardcoded defaults for the production deployment endpoints in the visor. Without it, any changes here would require an updated version of skywire to manifest correct config default values
+This endpoint is used to avoid relying on hardcoded defaults for the production deployment endpoints in the visor's config.
+Without it, any changes to the deployment would require an updated version of skywire to manifest correct config default values or significant user intervention.
 
-A deployment of _all services as a set_ will require this for visors to query this endpoint during `config gen`
+A deployment of _all services as a set_ will use this for visors to query the endpoint during `config gen` to get the services for the custom deployment, otherwise it is not strictly required.
 
 ### `dmsg-discovery`
+[dmsg-discovery](https://github.com/skycoin/dmsg/tree/develop/cmd/dmsg-discovery)
+
+_Note: this service requires redis_
+
 Run the Dmsg Discovery server
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee dmsgd-config.json
-grep -m1 "sk" dmsgd-config.json | cut -d '"' -f4 | tee -a dmsgd-config.json
+keys-gen | tee dmsgd-config.json
 dmsg-discovery --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
 ```
 
 ### `dmsg-server`
+[dmsg-server](https://github.com/skycoin/dmsg/tree/develop/cmd/dmsg-server)
 
 #### Configure `dmsg-server`
 Generate a config for the dmsg server
@@ -214,18 +237,20 @@ setup-node setup-node-config.json
 ```
 
 ## `address-resolver`
-Note: this service requires redis
+[address-resolver](https://github.com/skycoin/skywire-services/tree/develop/cmd/address-resolver)
+
+_Note: this service requires redis_
 
 Run the address resolver
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee ar-config.json
-grep -m1 "sk" ar-config.json | cut -d '"' -f4 | tee -a ar-config.json
+keys-gen | tee ar-config.json
 address-resolver --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 ar-config.json)
 ```
 
 ## `route-finder`
+[route-finder](https://github.com/skycoin/skywire-services/tree/develop/cmd/route-finder)
 
-Note: this service requires postgresql & initial DB setup
+_Note: this service requires postgresql & initial DB setup_
 ```
 sudo -iu postgres
 createdb rf
@@ -233,14 +258,15 @@ exit
 ```
 Run the route finder
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee rf-config.json
-grep -m1 "sk" rf-config.json | cut -d '"' -f4 | tee -a rf-config.json
+keys-gen | tee rf-config.json
 PG_USER="postgres" PG_DATABASE="route-finder" PG_PASSWORD="" route-finder  --addr ":9092" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 rf-config.json)
 ```
 
 ## `transport-discovery`
+[transport-discovery](https://github.com/skycoin/skywire-services/tree/develop/cmd/transport-discovery)
 
-Note: this service requires postgresql & initial DB setup
+_Note: this service requires redis_
+_Note: this service requires postgresql & initial DB setup_
 ```
 sudo -iu postgres
 createdb tpd
@@ -248,14 +274,14 @@ exit
 ```
 Run the transport discovery
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee tpd-config.json
-grep -m1 "sk" tpd-config.json | cut -d '"' -f4 | tee -a tpd-config.json
-PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr ":9091" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 tpd-config.json)
+keys-gen | tee tpd-config.json
+PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 tpd-config.json)
 ```
 
 ## `service-discovery`
-
-Note: this service requires postgresql & initial DB setup
+[service-discovery](https://github.com/skycoin/skycoin-service-discovery/tree/develop/cmd/service-discovery)
+_Note: this service requires redis_
+_Note: this service requires postgresql & initial DB setup_
 ```
 sudo -iu postgres
 createdb sd
@@ -263,13 +289,13 @@ exit
 ```
 Run the service discovery
 ```
-skywire-cli config gen -n | head -n4 | tail -n2 | tee sd-config.json
-grep -m1 "sk" sd-config.json | cut -d '"' -f4 | tee -a sd-config.json
-PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9098" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 sd-config.json)
+keys-gen | tee sd-config.json
+PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 sd-config.json)
 
 ```
 
 ## `network-monitor`
+[network-monitor](https://github.com/skycoin/skywire-services/tree/develop/cmd/network-monitor)
 
 __Note: this service depends on the uptime tracker which is not yet open source.__
 
@@ -290,11 +316,13 @@ Run the network monitor
 network-monitor -c nm-config.json -a ":9080"
 ```
 
-_Note: the network-monitor is a skywire visor by another name, the ports will conflict with the ports used by skywire-visor_
+_Note: the network-monitor IS a skywire visor by another name ; the ports will conflict with the ports used by skywire-visor_
 
 ## `skywire-visor`
+[skywire-visor](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-visor)
+[skywire-cli](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-cli)
 
-The use of the visor is well documented, a brief overview of it's use with a new deployment is as follows
+A brief overview of the visor's use with a new deployment is as follows
 
 Generate a config with defaults for your deployment:
 ```
@@ -436,7 +464,7 @@ __Note the default ports:__
 ```
 __Note: tcp, udp, and http ports in the config will always have a colon and will never be low ports__
 
-the other ports are 'virtual' dmsg ports
+The other ports are `virtual` dmsg ports
 
 Run skywire-visor
 ```
@@ -445,9 +473,9 @@ skywire-visor -c skywire-config.json
 
 ## Using Dmsg to connect to the deployment
 
-a config file called `dmsghttp-config.json` can be created containing the dmsg addresses of the services, this configuration is used automatically based on region (iran, china) with `skywire-cli config gen -b` or used by default with `skywire-cli config gen -d`
+A JSON config file called `dmsghttp-config.json` can be created containing the dmsg addresses of the services for a deployment. This configuration is used automatically based on region (iran, china) with `skywire-cli config gen -b` or used by default with `skywire-cli config gen -d` and must be present at the expected path - either the current directory or the installation directory - for that configuration to be generated. This file is included in the skywire github repository as well as with our releases.
 
-the following file is created manually to reflect your deployment
+the following file is created manually to reflect the deployment
 ```
 {
   "test": {
