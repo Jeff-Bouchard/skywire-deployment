@@ -135,8 +135,8 @@ dmsg-discovery --sk $(tail -n1 dmsgd-config.json)
 The following endpoint is queried by the visor on config gen:
 https://conf.skywire.skycoin.com/
 
-This endpoint contains json which will become part of the visor's config
-the following file is created manually to reflect your deployment
+This endpoint contains json which will become part of the visor's config.
+The following file is created manually to reflect your deployment:
 ```
 {
   "dmsg_discovery": "http://dmsgd.skywire.skycoin.com",
