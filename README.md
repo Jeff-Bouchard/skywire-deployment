@@ -8,10 +8,44 @@ This repository contains submodules of all the repositories used for skywire dep
 * [skywire-services](https://github.com/skycoin/skywire-services)
 * [skycoin-service-discovery](https://github.com/skycoin/skycoin-service-discovery)
 
+## Table of Contents
+
+* [Skywire Deployment](#skywire-deployment)
+   * [Table of Contents](#table-of-contents)
+   * [Code Checks &amp; Tests](#code-checks--tests)
+   * [Building](#building)
+   * [Runtime Dependencies by Service](#runtime-dependencies-by-service)
+      * [Redis](#redis)
+         * [Redis setup](#redis-setup)
+      * [Postgres](#postgres)
+         * [Postgres DB Setup](#postgres-db-setup)
+   * [Required Services](#required-services)
+   * [Key generation for services](#key-generation-for-services)
+      * [Visor Config Bootstrap Endpoint](#visor-config-bootstrap-endpoint)
+   * [SKYCOIN-SERVICE-DISCOVERY Setup](#skycoin-service-discovery-setup)
+   * [service-discovery](#service-discovery)
+   * [DMSG Setup](#dmsg-setup)
+      * [dmsg-discovery](#dmsg-discovery)
+      * [dmsg-server](#dmsg-server)
+         * [Configure dmsg-server](#configure-dmsg-server)
+         * [Run dmsg-server](#run-dmsg-server)
+   * [SKYWIRE-SERVICES Setup](#skywire-services-setup)
+      * [address-resolver](#address-resolver)
+      * [route-finder](#route-finder)
+      * [transport-discovery](#transport-discovery)
+      * [network-monitor](#network-monitor)
+   * [SKYWIRE Setup](#skywire-setup)
+      * [Route setup-node](#route-setup-node)
+      * [skywire-visor](#skywire-visor)
+   * [Using Dmsg to connect to the deployment](#using-dmsg-to-connect-to-the-deployment)
+   * [HTTP Service Configuration](#http-service-configuration)
 
 ## Code Checks & Tests
 
-Dependencies: [go](https://go.dev/) [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports) & [goimports-reviser](https://github.com/incu6us/goimports-reviser)
+Dependencies:
+* [go](https://go.dev/)
+* [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+* [goimports-reviser](https://github.com/incu6us/goimports-reviser)
 
 For any given submodule repository, included is a Makefile with directives such as `format` and `check`.
 `make format check` is currently used by the CI to check pull requests.
@@ -32,7 +66,8 @@ The flags used for `go test` may vary from repo to repo
 
 ## Building
 
-Dependencies: [go](https://go.dev/)
+Dependencies:
+* [go](https://go.dev/)
 
 For any given submodule repository (except skywire-utilities) included is a Makefile with a `build` directive.
 
