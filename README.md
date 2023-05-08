@@ -404,6 +404,7 @@ PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" go run cmd/route-finder/route
 [transport-discovery](https://github.com/skycoin/skywire-services/tree/develop/cmd/transport-discovery)
 
 _Note: this service requires redis_
+
 _Note: this service requires postgresql & initial DB setup_
 ```
 sudo -iu postgres createdb tpd
@@ -432,6 +433,7 @@ go run cmd/transport-discovery/transport-discovery.go  --addr ":9091" --redis "r
 [network-monitor](https://github.com/skycoin/skywire-services/tree/develop/cmd/network-monitor)
 
 __Note: this service depends on the uptime tracker which is not yet open source.__
+
 __Note: this service depends on skywire-cli for config generation.__
 
 Network Monitor takes a regular skywire config.
@@ -452,6 +454,7 @@ network-monitor -c nm-config.json -a ":9080"
 ```
 
 Example `go run` the Network Monitor node from source in a bash shell.
+
 __Note: the skywire-cli command is expected to be present in the executable PATH of this environment!__
 ```
 rm -rf skywire-services
@@ -472,6 +475,7 @@ _Note: the network-monitor IS a skywire visor by another name ; the ports will c
 This section deals with services which can be built from the [skycoin/skywire](https://github.com/skycoin/skywire) repo
 
 To build all the binaries:
+
 _Please note: use make build to generate correctly versioned binaries_
 ```
 [[ ! -d skywire/.git ]] && rm -rf skywire || true
@@ -550,6 +554,7 @@ go run cmd/setup-node/setup-node.go setup-node-config.json
 A brief overview of the visor's use with a new deployment is as follows
 
 Generate a config with defaults for your deployment:
+
 _Note the `-p` flag is used for the linux package installation path_
 ```
 skywire-cli config gen -bpirxa conf.magnetosphere.net -o skywire-config.json
