@@ -186,7 +186,9 @@ go build ./cmd/service-discovery/service-discovery.go
 
 ## `service-discovery`
 [service-discovery](https://github.com/skycoin/skycoin-service-discovery/tree/develop/cmd/service-discovery)
+
 _Note: this service requires redis_
+
 _Note: this service requires postgresql & initial DB setup_
 ```
 sudo -iu postgres createdb sd
