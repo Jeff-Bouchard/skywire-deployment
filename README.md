@@ -167,6 +167,75 @@ Without it, any changes to the deployment would require an updated version of sk
 
 A deployment of _all services as a set_ will use this for visors to query the endpoint during `config gen` to get the services for the custom deployment, otherwise it is not strictly required.
 
+## SKYCOIN-SERVICE-DISCOVERY Setup
+
+This section deals with services which can be built from the [skycoin/skycoin-service-discovery](https://github.com/skycoin/skycoin-service-discovery) repo
+
+To build all the binaries
+
+```
+[[ ! -d skycoin-service-discovery/.git ]] && rm -rf skycoin-service-discovery || true
+[[ ! -d skycoin-service-discovery ]] git clone https://github.com/skycoin/skycoin-service-discovery
+cd skycoin-service-discovery
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go build ./cmd/service-discovery/service-discovery.go
+```
+
+## `service-discovery`
+[service-discovery](https://github.com/skycoin/skycoin-service-discovery/tree/develop/cmd/service-discovery)
+_Note: this service requires redis_
+_Note: this service requires postgresql & initial DB setup_
+```
+sudo -iu postgres createdb sd
+```
+Run the Service Discovery server
+```
+keys-gen | tee sd-config.json
+PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 sd-config.json)
+```
+
+Example `go run` the Service Discovery server from source in a bash shell.
+__Note: the keys-gen command is expected to be present in the executable PATH of this environment!__
+```
+rm -rf skycoin-service-discovery
+git clone https://github.com/skycoin/skycoin-service-discovery
+cd skycoin-service-discovery
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+keys-gen | tee sd-config.json
+go run cmd/service-discovery/service-discovery.go  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 sd-config.json)
+```
+
+## DMSG Setup
+
+This section deals with services which can be built from the [skycoin/dmsg](https://github.com/skycoin/dmsg) repo
+
+To build all the binaries
+
+```
+[[ ! -d dmsg/.git ]] && rm -rf dmsg || true
+[[ ! -d dmsg ]] git clone https://github.com/skycoin/dmsg
+cd dmsg
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go build cmd/dmsg-discovery/dmsg-discovery.go & \
+go build cmd/dmsgget/dmsgget.go & \
+go build cmd/dmsgpty-cli/dmsgpty-cli.go & \
+go build cmd/dmsgpty-host/dmsgpty-host.go & \
+go build cmd/dmsgpty-ui/dmsgpty-ui.go & \
+go build cmd/dmsg-server/dmsg-server.go
+wait
+```
+
+optionally, any of those can be `go run` without explicitly compiling
+
 ### `dmsg-discovery`
 [dmsg-discovery](https://github.com/skycoin/dmsg/tree/develop/cmd/dmsg-discovery)
 
@@ -176,6 +245,20 @@ Run the Dmsg Discovery server
 ```
 keys-gen | tee dmsgd-config.json
 dmsg-discovery --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
+```
+
+Example `go run` the Dmsg Discovery server from source  in a bash shell
+
+```
+rm -rf dmsg
+git clone https://github.com/skycoin/dmsg
+cd dmsg
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/dmsg-server/dmsg-server.go config gen -o dmsgd-conf.json ; head -n3 dmsgd-conf.json | tail -n2 | cut -d '"' -f4 | tee dmsgd-config.json ; rm dmsgd-conf.json
+go run cmd/dmsg-discovery/dmsg-discovery.go --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
 ```
 
 ### `dmsg-server`
@@ -200,20 +283,219 @@ output
 	"max_sessions": 2048
 }
 ```
+__The IP address must be a public ip address.__
+
+__The port on which the dmsg server is running must be forwarded or otherwise accessible for public servers.__
 
 The above "discovery" endpoint should be changed to match the endpoint of the dmsg discovery server referenced in the previous section.
 The default ports are shown.
 
-### Run `dmsg-server`
+#### Run `dmsg-server`
 
-Run the dmsg server (read config from file not working)
+Run the dmsg server
 ```
-cat dmsg-config.json | dmsg-server start -c STDIN
+dmsg-server start dmsg-config.json
 ```
 
-__The port which the dmsg server is running on must be forwarded or otherwise accessible for public servers.__
+Example `go run` the Dmsg server from source  in a bash shell
+Please note that `git`, `jq`, `curl`, `sed` and `cut` are used in the following example.
 
-## Route `setup-node`
+```
+rm -rf dmsg
+git clone https://github.com/skycoin/dmsg
+cd dmsg
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/dmsg-server/dmsg-server.go config gen -o dmsg-config.json ; sed -i -e 's/dmsgd.skywire.skycoin.com/127.0.0.1:9090/g' -e "s/127.0.0.1:8081/$(curl -L https://ip.skycoin.com | jq '.ip_address' | cut -d '"' -f2):8081/g" dmsg-config.json
+go run cmd/dmsg-server/dmsg-server.go start dmsg-config.json
+```
+
+## SKYWIRE-SERVICES Setup
+
+This section deals with services which can be built from the [skycoin/skywire-services](https://github.com/skycoin/skywire-services) repo
+
+To build all the binaries
+
+```
+[[ ! -d skywire-services/.git ]] && rm -rf skywire-services || true
+[[ ! -d skywire-services ]] git clone https://github.com/skycoin/skywire-services
+cd skywire-services
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go build ./cmd/address-resolver/address-resolver.go & \
+go build ./cmd/config-bootstrapper/config.go & \
+go build ./cmd/dmsg-monitor/dmsg-monitor.go & \
+go build ./cmd/keys-gen/keys-gen.go & \
+go build ./cmd/liveness-checker/liveness-checker.go & \
+go build ./cmd/network-monitor/network-monitor.go & \
+go build ./cmd/node-visualizer/node-visualizer.go & \
+go build ./cmd/public-visor-monitor/public-visor-monitor.go & \
+go build ./cmd/route-finder/route-finder.go & \
+go build ./cmd/setup-node/setup-node.go & \
+go build ./cmd/sw-env/sw-env.go & \
+go build ./cmd/tpd-monitor/tpd-monitor.go & \
+go build ./cmd/transport-discovery/transport-discovery.go & \
+go build ./cmd/transport-setup/transport-setup.go & \
+go build ./cmd/vpn-lite-client/vpn-lite-client.go & \
+go build ./cmd/vpn-monitor/vpn-monitor.go
+wait
+```
+
+optionally, any of those can be `go run` without explicitly compiling
+
+### `address-resolver`
+[address-resolver](https://github.com/skycoin/skywire-services/tree/develop/cmd/address-resolver)
+
+_Note: this service requires redis_
+
+Run the address resolver
+```
+keys-gen | tee ar-config.json
+address-resolver --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 ar-config.json)
+```
+
+Example `go run` the Address Resolver server from source in a bash shell.
+
+```
+rm -rf skywire-services
+git clone https://github.com/skycoin/skywire-services
+cd skywire-services
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/keys-gen/keys-gen.go | tee ar-config.json
+go run cmd/address-resolver/address-resolver.go --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 ar-config.json)
+```
+
+
+### `route-finder`
+[route-finder](https://github.com/skycoin/skywire-services/tree/develop/cmd/route-finder)
+
+_Note: this service requires postgresql & initial DB setup_
+```
+sudo -iu postgres createdb rf
+```
+Run the Route Finder
+```
+keys-gen | tee rf-config.json
+PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" route-finder  --addr ":9092" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 rf-config.json)
+```
+
+Example `go run` the Route Finder server from source in a bash shell.
+
+```
+rm -rf skywire-services
+git clone https://github.com/skycoin/skywire-services
+cd skywire-services
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/keys-gen/keys-gen.go | tee rf-config.json
+PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" go run cmd/route-finder/route-finder.go  --addr ":9092" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 rf-config.json)
+```
+
+### `transport-discovery`
+[transport-discovery](https://github.com/skycoin/skywire-services/tree/develop/cmd/transport-discovery)
+
+_Note: this service requires redis_
+_Note: this service requires postgresql & initial DB setup_
+```
+sudo -iu postgres createdb tpd
+```
+Run the Transport Discovery server
+```
+keys-gen | tee tpd-config.json
+PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 tpd-config.json)
+```
+
+Example `go run` the Transport Discovery server from source in a bash shell.
+
+```
+rm -rf skywire-services
+git clone https://github.com/skycoin/skywire-services
+cd skywire-services
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/keys-gen/keys-gen.go | tee tpd-config.json
+go run cmd/transport-discovery/transport-discovery.go  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 tpd-config.json)
+```
+
+### `network-monitor`
+[network-monitor](https://github.com/skycoin/skywire-services/tree/develop/cmd/network-monitor)
+
+__Note: this service depends on the uptime tracker which is not yet open source.__
+__Note: this service depends on skywire-cli for config generation.__
+
+Network Monitor takes a regular skywire config.
+To make network monitor use the services which have been set up, use the `-a` flag for `skywire-cli config gen`
+```
+skywire-cli config gen -a conf.magnetosphere.net -o nm-config.json
+```
+
+The network-monitor enforces the existence of the path `./local/transport_logs` and ignores any changes to that path in the config currently.
+
+```
+mkdir -p local/transport_logs
+```
+
+Run the network monitor
+```
+network-monitor -c nm-config.json -a ":9080"
+```
+
+Example `go run` the Network Monitor node from source in a bash shell.
+__Note: the skywire-cli command is expected to be present in the executable PATH of this environment!__
+```
+rm -rf skywire-services
+git clone https://github.com/skycoin/skywire-services
+cd skywire-services
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+skywire-cli config gen -a conf.magnetosphere.net -o nm-config.json
+go run cmd/network-monitor/network-monitor.go -c nm-config.json -a ":9080"
+```
+
+_Note: the network-monitor IS a skywire visor by another name ; the ports will conflict with the ports used by skywire-visor, please refer to the following section_
+
+## SKYWIRE Setup
+
+This section deals with services which can be built from the [skycoin/skywire](https://github.com/skycoin/skywire) repo
+
+To build all the binaries:
+_Please note: use make build to generate correctly versioned binaries_
+```
+[[ ! -d skywire/.git ]] && rm -rf skywire || true
+[[ ! -d skywire ]] git clone https://github.com/skycoin/skywire
+cd skywire
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go build ./cmd/skywire-visor/skywire-visor.go & \
+go build ./cmd/skywire-cli/skywire-cli.go & \
+go build ./cmd/setup-node/setup-node.go & \
+go build ./cmd/apps/vpn-server/vpn-server.go & \
+go build ./cmd/apps/vpn-client/vpn-client.go & \
+go build ./cmd/apps/skysocks/skysocks.go & \
+go build ./cmd/apps/skysocks-client/skysocks-client.go & \
+go build ./cmd/apps/skychat/skychat.go
+wait
+```
+
+optionally, `go run` without explicitly compiling
+
+
+### Route `setup-node`
 [setup-node](https://github.com/skycoin/skywire/tree/develop/cmd/setup-node)
 
 Running route setup-node requires a config as follows:
@@ -237,95 +519,38 @@ Run the setup-node
 setup-node setup-node-config.json
 ```
 
-## `address-resolver`
-[address-resolver](https://github.com/skycoin/skywire-services/tree/develop/cmd/address-resolver)
-
-_Note: this service requires redis_
-
-Run the address resolver
-```
-keys-gen | tee ar-config.json
-address-resolver --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 ar-config.json)
-```
-
-## `route-finder`
-[route-finder](https://github.com/skycoin/skywire-services/tree/develop/cmd/route-finder)
-
-_Note: this service requires postgresql & initial DB setup_
-```
-sudo -iu postgres
-createdb rf
-exit
-```
-Run the route finder
-```
-keys-gen | tee rf-config.json
-PG_USER="postgres" PG_DATABASE="route-finder" PG_PASSWORD="" route-finder  --addr ":9092" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 rf-config.json)
-```
-
-## `transport-discovery`
-[transport-discovery](https://github.com/skycoin/skywire-services/tree/develop/cmd/transport-discovery)
-
-_Note: this service requires redis_
-_Note: this service requires postgresql & initial DB setup_
-```
-sudo -iu postgres
-createdb tpd
-exit
-```
-Run the transport discovery
-```
-keys-gen | tee tpd-config.json
-PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 tpd-config.json)
-```
-
-## `service-discovery`
-[service-discovery](https://github.com/skycoin/skycoin-service-discovery/tree/develop/cmd/service-discovery)
-_Note: this service requires redis_
-_Note: this service requires postgresql & initial DB setup_
-```
-sudo -iu postgres
-createdb sd
-exit
-```
-Run the service discovery
-```
-keys-gen | tee sd-config.json
-PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://dmsgd.skywire.skycoin.com" --sk $(tail -n1 sd-config.json)
+Example `go run` the Route Setup node from source  in a bash shell
 
 ```
-
-## `network-monitor`
-[network-monitor](https://github.com/skycoin/skywire-services/tree/develop/cmd/network-monitor)
-
-__Note: this service depends on the uptime tracker which is not yet open source.__
-
-Network Monitor takes a regular skywire config.
-To make network monitor use the services which have been set up, use the `-a` flag for `skywire-cli config gen`
-```
-skywire-cli config gen -a conf.magnetosphere.net -o nm-config.json
-```
-
-The network-monitor enforces the existence of the path `./local/transport_logs` and ignores any changes to that path in the config currently.
-
-```
-mkdir -p local/transport_logs
-```
-
-Run the network monitor
-```
-network-monitor -c nm-config.json -a ":9080"
+rm -rf skywire
+git clone https://github.com/skycoin/skywire
+cd skywire
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+go run cmd/skywire-cli/skywire-cli.go config gen -n | head -n4 | sed -e '2d' -e 's/sk/secret_key/g' -e 's/pk/public_key/g' | tee setup-node-config.json
+echo "	\"dmsg\": {
+		\"discovery\": \"http://127.0.0.1:9090\",
+		\"sessions_count\": 1,
+		\"servers\": []
+	},
+	\"transport_discovery\": \"http://127.0.0.1:9091\",
+	\"log_level\": \"debug\"
+}" | tee -a setup-node-config.json
+go run cmd/setup-node/setup-node.go setup-node-config.json
 ```
 
-_Note: the network-monitor IS a skywire visor by another name ; the ports will conflict with the ports used by skywire-visor_
 
-## `skywire-visor`
+
+### `skywire-visor`
 [skywire-visor](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-visor)
 [skywire-cli](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-cli)
 
 A brief overview of the visor's use with a new deployment is as follows
 
 Generate a config with defaults for your deployment:
+_Note the `-p` flag is used for the linux package installation path_
 ```
 skywire-cli config gen -bpirxa conf.magnetosphere.net -o skywire-config.json
 ```
@@ -463,7 +688,8 @@ __Note the default ports:__
 :8000
 :8001
 ```
-__Note: tcp, udp, and http ports in the config will always have a colon and will never be low ports__
+__Note: tcp, udp, and http ports in the config will always have a colon and will never be low ports!__
+
 
 The other ports are `virtual` dmsg ports
 
@@ -471,6 +697,31 @@ Run skywire-visor
 ```
 skywire-visor -c skywire-config.json
 ```
+
+Example `go run` the Skywire Visor (node) from source  in a bash shell
+_Note: substitute your own service conf URL in place of conf.magnetosphere.net for `skywire-cli config gen`_
+_Note: the vpn client requires root; the visor is typically run as root._
+_Note: running the visor as root or with sudo permissions in the user space will create files and folders as root._
+```
+rm -rf skywire
+git clone https://github.com/skycoin/skywire
+cd skywire
+#checkout a commit or a branch
+git checkout develop
+#sync the dependencies just in case
+go mod tidy ; go mod vendor
+[[ -d apps ]] && rm -r apps || true
+mkdir -p apps
+echo -e '#!/bin/bash \n go run ../../cmd/apps/skychat/skychat.go' | tee apps/skychat
+echo -e '#!/bin/bash \n go run ../../cmd/apps/skysocks/skysocks.go' | tee apps/skysocks
+echo -e '#!/bin/bash \n go run ../../cmd/apps/skysocks-client/skysocks-client.go' | tee apps/skysocks-client
+echo -e '#!/bin/bash \n go run ../../cmd/apps/vpn-client/vpn-client.go' | tee apps/vpn-client
+echo -e '#!/bin/bash \n go run ../../cmd/apps/vpn-server/vpn-server.go' | tee apps/vpn-server
+chmod +x ./apps/*
+go run cmd/skywire-cli/skywire-cli.go config gen -bixra conf.magnetosphere.net -o skywire-config.json
+sudo go run ./cmd/skywire-visor/skywire-visor.go -c skywire-config.json || true
+```
+
 
 ## Using Dmsg to connect to the deployment
 
@@ -553,5 +804,37 @@ the following file is created manually to reflect the deployment
     "uptime_tracker": "dmsg://022c424caa6239ba7d1d9d8f7dab56cd5ec6ae2ea9ad97bb94ad4b48f62a540d3f:80",
     "service_discovery": "dmsg://0204890f9def4f9a5448c2e824c6a4afc85fd1f877322320898fafdf407cc6fef7:80"
   }
+}
+```
+
+## HTTP Service Configuration
+
+The following [caddy-server](https://caddyserver.com/) [`Caddyfile`](https://caddyserver.com/docs/caddyfile/concepts#caddyfile-concepts) configuration reflects the default ports of the http services.
+
+```
+dmsgd.magnetosphere.net {
+reverse_proxy http://127.0.0.1:9090
+import common
+}
+ar.magnetosphere.net {
+reverse_proxy http://127.0.0.1:9093
+import common
+}
+rf.magnetosphere.net {
+reverse_proxy http://127.0.0.1:9092
+import common
+}
+tpd.magnetosphere.net {
+reverse_proxy http://127.0.0.1:9091
+import common
+}
+sd.magnetosphere.net {
+reverse_proxy http://127.0.0.1:9098
+import common
+}
+conf.magnetosphere.net {
+header Content-Type	application/json
+respond {"dmsg_discovery":"http://dmsgd.magnetosphere.net","transport_discovery":"http://tpd.magnetosphere.net","address_resolver":"http://ar.magnetosphere.net","route_finder":"http://rf.magnetosphere.net","setup_nodes":["024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438"],"uptime_tracker":"http://ut.skywire.skycoin.com","service_discovery":"http://sd.magnetosphere.net","stun_servers":["139.162.12.30:3478","170.187.228.181:3478","172.104.161.184:3478","170.187.231.137:3478","143.42.74.91:3478","170.187.225.78:3478","143.42.78.123:3478","139.162.12.244:3478"],"dns_server":"1.1.1.1"}
+import common
 }
 ```
