@@ -13,7 +13,9 @@ This repository contains submodules of all the repositories used for skywire dep
 * [Skywire Deployment](#skywire-deployment)
    * [Table of Contents](#table-of-contents)
    * [Initialize the repo](#initialize-the-repo)
-   * [Code Checks &amp; Tests](#code-checks--tests)
+   * [Code Formatting](#code-formatting)
+   * [Code Linting](#code-linting)
+   * [Code Tests](#code-tests)
    * [Building](#building)
    * [Runtime Dependencies by Service](#runtime-dependencies-by-service)
       * [Redis](#redis)
@@ -52,29 +54,55 @@ Clone this repo and all its submodules with:
 git clone --recurse-submodules https://github.com/skycoin/skywire-deployment.git
 ```
 
-## Code Checks & Tests
+## Code Formatting
 
 Dependencies:
 * [go](https://go.dev/)
 * [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
 * [goimports-reviser](https://github.com/incu6us/goimports-reviser)
 
-For any given submodule repository, included is a Makefile with directives such as `format` and `check`.
-`make format check` is currently used by the CI to check pull requests.
+For any given submodule repository, included is a Makefile with directives such as `format`.
 
-`make format check` executes a variation of the following commands:
+`make format` executes a variation of the following commands, depending on the repo:
 ```
 go mod tidy -v
 [[ -d pkg ]] && goimports -w -local github.com/skycoin/$(basename $(pwd)) ./pkg
 [[ -d cmd ]] && goimports -w -local github.com/skycoin/$(basename $(pwd)) ./cmd
 [[ -d internal ]] && goimports -w -local github.com/skycoin/$(basename $(pwd)) ./internal
 find . -type f -name '*.go' -not -path "./.git/*" -not -path "./vendor/*"  -exec goimports-reviser -project-name github.com/skycoin/$(basename $(pwd)) {} \;
+```
+
+## Code Linting
+
+Dependencies:
+* [go](https://go.dev/)
+* [golangci-lint](https://golangci-lint.run/)
+
+
+For any given submodule repository, included is a Makefile with a `lint` directive.
+
+`make lint` executes a variation of the following commands, depending on the repo:
+```
+golangci-lint run -c .golangci.yml ./...
+```
+
+## Code Tests
+
+Dependencies:
+* [go](https://go.dev/)
+
+For any given submodule repository, included is a Makefile with a `test` directive.
+
+_Note: `make check` combines the `lint` and `test` directives and is currently used by the CI to check pull requests._
+
+`make test` executes a variation of the following commands:
+```
 go clean -testcache &>/dev/null
 [[ -d internal ]] && go test  -cover -timeout=5m -mod=vendor ./internal/...
 [[ -d pkg ]] && go test -cover -timeout=5m -mod=vendor ./pkg/...
 ```
 
-The flags used for `go test` may vary from repo to repo
+_Note: The flags used for `go test` may vary from repo to repo_
 
 ## Building
 
@@ -87,16 +115,16 @@ For any given submodule repository (except skywire-utilities) included is a Make
 
 ```
 cd skywire
-go build ./cmd/skywire-visor
-cd ..
+go build ./cmd/skywire-visor/skywire-visor.go
+go build ./cmd/skywire-cli/skywire-cli.go
 ```
 
-OR, using `go run` instead
+It is also possible to `go run` without explicitly compiling a binary
 
 ```
 cd skywire
-go run ./cmd/skywire-visor --help
-go run ./cmd/skywire-cli --help
+go run ./cmd/skywire-visor/skywire-visor.go --help
+go run ./cmd/skywire-cli/skywire-cli.go --help
 ```
 
 Note that some binaries may have gcc / libc6 dependency unless statically compiled with musl.
@@ -104,20 +132,19 @@ Note that some binaries may have gcc / libc6 dependency unless statically compil
 ## Runtime Dependencies by Service
 
 ### Redis
-* address-resolver
-* transport-discovery
-* network-monitor
-* dmsg-discovery
-* service-discovery
+* [address-resolver](#address-resolver)
+* [transport-discovery](#transport-discovery)
+* [dmsg-discovery](#dmsg-discovery)
+* [service-discovery](#service-discovery)
 
 #### Redis setup
 
 Redis setup simply entails installing redis and starting the service.
 
 ### Postgres
-* transport-discovery
-* route-finder
-* service-discovery
+* [transport-discovery](#transport-discovery)
+* [route-finder](#route-finder)
+* [service-discovery](#service-discovery)
 
 #### Postgres DB Setup
 
@@ -142,14 +169,13 @@ __All tables are created automatically.__
 
 ## Required Services
 
-* address-resolver
-* network-monitor
-* dmsg-discovery
-* dmsg-server
-* transport-discovery
-* route-finder
-* service-discovery
-* setup-node
+* [address-resolver](#address-resolver)
+* [dmsg-discovery](#dmsg-discovery)
+* [dmsg-server](#dmsg-server)
+* [transport-discovery](#transport-discovery)
+* [route-finder](#route-finder)
+* [service-discovery](#service-discovery)
+* [setup-node](#setup-node)
 
 A list of endpoints corresponding to some of these services in the current deployment is provided here for reference:
 
@@ -221,8 +247,6 @@ This section deals with services which can be built from the [skycoin/skycoin-se
 To build all the binaries
 
 ```
-[[ ! -d skycoin-service-discovery/.git ]] && rm -rf skycoin-service-discovery || true
-[[ ! -d skycoin-service-discovery ]] git clone https://github.com/skycoin/skycoin-service-discovery
 cd skycoin-service-discovery
 #checkout a commit or a branch
 git checkout develop
@@ -249,8 +273,6 @@ PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9
 Example `go run` the Service Discovery server from source in a bash shell.
 __Note: the keys-gen command is expected to be present in the executable PATH of this environment!__
 ```
-rm -rf skycoin-service-discovery
-git clone https://github.com/skycoin/skycoin-service-discovery
 cd skycoin-service-discovery
 #checkout a commit or a branch
 git checkout develop
@@ -267,8 +289,6 @@ This section deals with services which can be built from the [skycoin/dmsg](http
 To build all the binaries
 
 ```
-[[ ! -d dmsg/.git ]] && rm -rf dmsg || true
-[[ ! -d dmsg ]] git clone https://github.com/skycoin/dmsg
 cd dmsg
 #checkout a commit or a branch
 git checkout develop
@@ -299,8 +319,6 @@ dmsg-discovery --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 d
 Example `go run` the Dmsg Discovery server from source  in a bash shell
 
 ```
-rm -rf dmsg
-git clone https://github.com/skycoin/dmsg
 cd dmsg
 #checkout a commit or a branch
 git checkout develop
@@ -350,8 +368,6 @@ Example `go run` the Dmsg server from source  in a bash shell
 Please note that `git`, `jq`, `curl`, `sed` and `cut` are used in the following example.
 
 ```
-rm -rf dmsg
-git clone https://github.com/skycoin/dmsg
 cd dmsg
 #checkout a commit or a branch
 git checkout develop
@@ -368,8 +384,6 @@ This section deals with services which can be built from the [skycoin/skywire-se
 To build all the binaries
 
 ```
-[[ ! -d skywire-services/.git ]] && rm -rf skywire-services || true
-[[ ! -d skywire-services ]] git clone https://github.com/skycoin/skywire-services
 cd skywire-services
 #checkout a commit or a branch
 git checkout develop
@@ -410,8 +424,6 @@ address-resolver --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "ht
 Example `go run` the Address Resolver server from source in a bash shell.
 
 ```
-rm -rf skywire-services
-git clone https://github.com/skycoin/skywire-services
 cd skywire-services
 #checkout a commit or a branch
 git checkout develop
@@ -438,8 +450,6 @@ PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" route-finder  --addr ":9092" 
 Example `go run` the Route Finder server from source in a bash shell.
 
 ```
-rm -rf skywire-services
-git clone https://github.com/skycoin/skywire-services
 cd skywire-services
 #checkout a commit or a branch
 git checkout develop
@@ -467,8 +477,6 @@ PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr 
 Example `go run` the Transport Discovery server from source in a bash shell.
 
 ```
-rm -rf skywire-services
-git clone https://github.com/skycoin/skywire-services
 cd skywire-services
 #checkout a commit or a branch
 git checkout develop
@@ -506,8 +514,6 @@ Example `go run` the Network Monitor node from source in a bash shell.
 
 __Note: the skywire-cli command is expected to be present in the executable PATH of this environment!__
 ```
-rm -rf skywire-services
-git clone https://github.com/skycoin/skywire-services
 cd skywire-services
 #checkout a commit or a branch
 git checkout develop
@@ -527,8 +533,6 @@ To build all the binaries:
 
 _Please note: use make build to generate correctly versioned binaries_
 ```
-[[ ! -d skywire/.git ]] && rm -rf skywire || true
-[[ ! -d skywire ]] git clone https://github.com/skycoin/skywire
 cd skywire
 #checkout a commit or a branch
 git checkout develop
@@ -575,8 +579,6 @@ setup-node setup-node-config.json
 Example `go run` the Route Setup node from source  in a bash shell
 
 ```
-rm -rf skywire
-git clone https://github.com/skycoin/skywire
 cd skywire
 #checkout a commit or a branch
 git checkout develop
@@ -757,8 +759,6 @@ _Note: substitute your own service conf URL in place of conf.magnetosphere.net f
 _Note: the vpn client requires root; the visor is typically run as root._
 _Note: running the visor as root or with sudo permissions in the user space will create files and folders as root._
 ```
-rm -rf skywire
-git clone https://github.com/skycoin/skywire
 cd skywire
 #checkout a commit or a branch
 git checkout develop
