@@ -12,6 +12,7 @@ This repository contains submodules of all the repositories used for skywire dep
 
 * [Skywire Deployment](#skywire-deployment)
    * [Table of Contents](#table-of-contents)
+   * [Initialize the repo](#initialize-the-repo)
    * [Code Checks &amp; Tests](#code-checks--tests)
    * [Building](#building)
    * [Runtime Dependencies by Service](#runtime-dependencies-by-service)
@@ -39,6 +40,17 @@ This repository contains submodules of all the repositories used for skywire dep
       * [skywire-visor](#skywire-visor)
    * [Using Dmsg to connect to the deployment](#using-dmsg-to-connect-to-the-deployment)
    * [HTTP Service Configuration](#http-service-configuration)
+
+## Initialize the repo
+
+This repo contains all necessary repos to deploy Skywire as submodules. To set the source code up locally, 
+make sure you have `make` and `git` installed on your machine. 
+
+Clone this repo and all its submodules with:
+
+```
+git clone --recurse-submodules https://github.com/skycoin/skywire-deployment.git
+```
 
 ## Code Checks & Tests
 
