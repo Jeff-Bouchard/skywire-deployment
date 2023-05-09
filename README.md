@@ -36,7 +36,6 @@ This repository contains submodules of all the repositories used for skywire dep
       * [address-resolver](#address-resolver)
       * [route-finder](#route-finder)
       * [transport-discovery](#transport-discovery)
-      * [network-monitor](#network-monitor)
    * [SKYWIRE Setup](#skywire-setup)
       * [Route setup-node](#route-setup-node)
       * [skywire-visor](#skywire-visor)
@@ -175,7 +174,7 @@ __All tables are created automatically.__
 * [transport-discovery](#transport-discovery)
 * [route-finder](#route-finder)
 * [service-discovery](#service-discovery)
-* [setup-node](#setup-node)
+* [setup-node](#route-setup-node)
 
 A list of endpoints corresponding to some of these services in the current deployment is provided here for reference:
 
@@ -485,45 +484,6 @@ go mod tidy ; go mod vendor
 go run cmd/keys-gen/keys-gen.go | tee tpd-config.json
 go run cmd/transport-discovery/transport-discovery.go  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 tpd-config.json)
 ```
-
-### `network-monitor`
-[network-monitor](https://github.com/skycoin/skywire-services/tree/develop/cmd/network-monitor)
-
-__Note: this service depends on the uptime tracker which is not yet open source.__
-
-__Note: this service depends on skywire-cli for config generation.__
-
-Network Monitor takes a regular skywire config.
-To make network monitor use the services which have been set up, use the `-a` flag for `skywire-cli config gen`
-```
-skywire-cli config gen -a conf.magnetosphere.net -o nm-config.json
-```
-
-The network-monitor enforces the existence of the path `./local/transport_logs` and ignores any changes to that path in the config currently.
-
-```
-mkdir -p local/transport_logs
-```
-
-Run the network monitor
-```
-network-monitor -c nm-config.json -a ":9080"
-```
-
-Example `go run` the Network Monitor node from source in a bash shell.
-
-__Note: the skywire-cli command is expected to be present in the executable PATH of this environment!__
-```
-cd skywire-services
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-skywire-cli config gen -a conf.magnetosphere.net -o nm-config.json
-go run cmd/network-monitor/network-monitor.go -c nm-config.json -a ":9080"
-```
-
-_Note: the network-monitor IS a skywire visor by another name ; the ports will conflict with the ports used by skywire-visor, please refer to the following section_
 
 ## SKYWIRE Setup
 
@@ -866,6 +826,11 @@ the following file is created manually to reflect the deployment
 The following [caddy-server](https://caddyserver.com/) [`Caddyfile`](https://caddyserver.com/docs/caddyfile/concepts#caddyfile-concepts) configuration reflects the default ports of the http services.
 
 ```
+(common) {
+    header /* {
+        -Server
+    }
+}
 dmsgd.magnetosphere.net {
 reverse_proxy http://127.0.0.1:9090
 import common
