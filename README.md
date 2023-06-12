@@ -411,7 +411,7 @@ optionally, any of those can be `go run` without explicitly compiling
 
 ### `address-resolver`
 [address-resolver](https://github.com/skycoin/skywire-services/tree/develop/cmd/address-resolver)
-
+_Note: the specified port must be on a public ip address or port forwarded for udp__
 _Note: this service requires redis_
 
 Run the address resolver
