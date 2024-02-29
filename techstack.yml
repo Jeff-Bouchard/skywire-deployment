@@ -1,0 +1,20 @@
+repo_name: Jeff-Bouchard/skywire-deployment
+report_id: f4f1cd5e74f0abad5b4bea1804ed15e0
+version: 0.1
+repo_type: Public
+timestamp: '2024-02-29T19:54:02+00:00'
+requested_by: 0pcom
+provider: github
+branch: master
+detected_tools_count: 1
+tools:
+- name: Git
+  description: Fast, scalable, distributed revision control system
+  website_url: http://git-scm.com/
+  open_source: true
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Version Control System
+  image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source_url: https://github.com/Jeff-Bouchard/skywire-deployment
+  detection_source: Repo Metadata
