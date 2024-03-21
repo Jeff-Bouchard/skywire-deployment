@@ -128,6 +128,18 @@ go run ./cmd/skywire-cli/skywire-cli.go --help
 
 Note that some binaries may have gcc / libc6 dependency unless statically compiled with musl.
 
+# Unified binary
+
+The releases for skywire now comprise a single binary executable file with subcommands for every previously separately-compiled binary. It is recommended, for the sake of simpliciity, to compile only this one binary from the skywire repo.
+
+**This document will henceforth assume the reader has compiled this unified binary and that it exists in the executable `PATH`.**
+
+The Makefile directives in skywire have been updated (on develop branch) to only produce the new unified binary; separate compilations are still posssible but should be considered deprecated in the case of visor native applications as there is no way to automatically generate a config for the separate apps since the release format has been changed to the single binary.
+
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/466c9b42-c55f-4614-a4e6-3187fab49a8e)
+
+combined documentation can be found [here](https://github.com/skycoin/skywire/tree/develop/cmd/skywire)
+
 ## Runtime Dependencies by Service
 
 ### Redis
@@ -160,7 +172,7 @@ export PG_DATABASE=sampledb
 
 __Specify the postgres host and port via flags__
 ```
-route-finder --pg-host localhost --pg-port 5432
+--pg-host localhost --pg-port 5432
 ```
 
 __All tables are created automatically.__
@@ -187,24 +199,22 @@ A list of endpoints corresponding to some of these services in the current deplo
 
 ## Key generation for services
 
-Public/secret keypairs for all services have identical format can can be used interchangeably. There are multiple ways of potentially generating these, for example with skywire-cli:
+Public/secret keypairs for all services have identical format can can be used interchangeably. Generate a keypair with `skywire cli config gen-keys`:
 
 ```
-skywire-cli config gen -n | head -n4 | tail -n2
+skywire cli config gen-keys
 ```
 
-A utility called `keys-gen` is included with skywire-services and can be used, which prints the public and secret key.
-
-The keypair can be written to a file and used by a service which accepts it in the following way with keys-gen
+The keypair can be written to a file and used by a service which accepts it in the following way
 
 ```
-keys-gen | tee dmsgd-config.json
-dmsg-discovery --sk $(tail -n1 dmsgd-config.json)
+skywire cli config gen-keys | tee dmsgd-config.json
+skywire dmsg disc --sk $(tail -n1 dmsgd-config.json)
 ```
 
 ### Visor Config Bootstrap Endpoint
 
-The following endpoint is queried by the visor on config gen:
+The following endpoint is queried by the visor on `config gen`:
 https://conf.skywire.skycoin.com/
 
 This endpoint contains json which will become part of the visor's config.
@@ -215,44 +225,61 @@ The following file is created manually to reflect your deployment:
   "transport_discovery": "http://tpd.skywire.skycoin.com",
   "address_resolver": "http://ar.skywire.skycoin.com",
   "route_finder": "http://rf.skywire.skycoin.com",
-  "setup_nodes": [
-    "0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557"
+  "route_setup_nodes": [
+    "0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557",
+    "024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438",
+    "03b87c282f6e9f70d97aeea90b07cf09864a235ef718725632d067873431dd1015"
+  ],
+  "transport_setup": [
+    "03530b786c670fc7f5ab9021478c7ec9cd06a03f3ea1416c50c4a8889ef5bba80e",
+    "03271c0de223b80400d9bd4b7722b536a245eb6c9c3176781ee41e7bac8f9bad21",
+    "03a792e6d960c88c6fb2184ee4f16714c58b55f0746840617a19f7dd6e021699d9",
+    "0313efedc579f57f05d4f5bc3fbf0261f31e51cdcfde7e568169acf92c78868926",
+    "025c7bbf23e3441a36d7e8a1e9d717921e2a49a2ce035680fec4808a048d244c8a",
+    "030eb6967f6e23e81db0d214f925fc5ce3371e1b059fb8379ae3eb1edfc95e0b46",
+    "02e582c0a5e5563aad47f561b272e4c3a9f7ac716258b58e58eb50afd83c286a7f",
+    "02ddc6c749d6ed067bb68df19c9bcb1a58b7587464043b1707398ffa26a9746b26",
+    "03aa0b1c4e23616872058c11c6efba777c130a85eaf909945d697399a1eb08426d",
+    "03adb2c924987d8deef04d02bd95236c5ae172fe5dfe7273e0461d96bf4bc220be"
   ],
   "uptime_tracker": "http://ut.skywire.skycoin.com",
   "service_discovery": "http://sd.skycoin.com",
   "stun_servers": [
-    "139.162.12.30:3478",
-    "170.187.228.181:3478",
-    "172.104.161.184:3478",
-    "170.187.231.137:3478",
-    "143.42.74.91:3478",
-    "170.187.225.78:3478",
-    "143.42.78.123:3478",
-    "139.162.12.244:3478"
+    "192.53.117.238:3478",
+    "170.187.228.44:3478",
+    "192.53.117.237:3478",
+    "192.53.117.146:3478",
+    "192.53.117.60:3478",
+    "192.53.117.124:3478",
+    "170.187.228.178:3478",
+    "170.187.225.246:3478"
   ],
-  "dns_server": "1.1.1.1"
+  "dns_server": "1.1.1.1",
+  "survey_whitelist": [
+    "02b5ee5333aa6b7f5fc623b7d5f35f505cb7f974e98a70751cf41962f84c8c4637",
+    "03714c8bdaee0fb48f47babbc47c33e1880752b6620317c9d56b30f3b0ff58a9c3",
+    "020d35bbaf0a5abc8ec0ba33cde219fde734c63e7202098e1f9a6cf9daaeee55a9",
+    "027f7dec979482f418f01dfabddbd750ad036c579a16422125dd9a313eaa59c8e1",
+    "031d4cf1b7ab4c789b56c769f2888e4a61c778dfa5fe7e5cd0217fc41660b2eb65",
+    "0327e2cf1d2e516ecbfdbd616a87489cc92a73af97335d5c8c29eafb5d8882264a",
+    "03abbb3eff140cf3dce468b3fa5a28c80fa02c6703d7b952be6faaf2050990ebf4"
+  ]
 }
+
 ```
 
-This endpoint is used to avoid relying on hardcoded defaults for the production deployment endpoints in the visor's config.
+This endpoint is used to avoid relying on hardcoded defaults for the production deployment endpoints in the visor's config 9they still are hardcoded for fallback scenarios.
 Without it, any changes to the deployment would require an updated version of skywire to manifest correct config default values or significant user intervention.
 
 A deployment of _all services as a set_ will use this for visors to query the endpoint during `config gen` to get the services for the custom deployment, otherwise it is not strictly required.
 
+Note as of v1.3.19 the services as defined in the conf service are distributed with the skywire binary releases as `services-config.json`
+
+This config file is used in the instancers that the services cannot be fetched during config gen. It may also be explicitly specified, in order to provide another means of configuring the visor to connect to a different or alternative deployment.
+
 ## SKYCOIN-SERVICE-DISCOVERY Setup
 
-This section deals with services which can be built from the [skycoin/skycoin-service-discovery](https://github.com/skycoin/skycoin-service-discovery) repo
-
-To build all the binaries
-
-```
-cd skycoin-service-discovery
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go build ./cmd/service-discovery/service-discovery.go
-```
+This section deals with skycoin-service-discovery or `SD` which can be built from the [skycoin/skycoin-service-discovery](https://github.com/skycoin/skycoin-service-discovery) repo
 
 ## `service-discovery`
 [service-discovery](https://github.com/skycoin/skycoin-service-discovery/tree/develop/cmd/service-discovery)
@@ -265,44 +292,17 @@ sudo -iu postgres createdb sd
 ```
 Run the Service Discovery server
 ```
-keys-gen | tee sd-config.json
-PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" service-discovery  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 sd-config.json)
+skywire cli config gen-keys > sd-config.json
+PG_USER="postgres" PG_DATABASE="sd" PG_PASSWORD="" skywire svc sd  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 sd-config.json)
 ```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/fa549212-63a9-49bb-a321-74f19560074f)
 
-Example `go run` the Service Discovery server from source in a bash shell.
-__Note: the keys-gen command is expected to be present in the executable PATH of this environment!__
-```
-cd skycoin-service-discovery
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-keys-gen | tee sd-config.json
-go run cmd/service-discovery/service-discovery.go  --addr ":9098" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 sd-config.json)
-```
 
 ## DMSG Setup
 
 This section deals with services which can be built from the [skycoin/dmsg](https://github.com/skycoin/dmsg) repo
 
-To build all the binaries
-
-```
-cd dmsg
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go build cmd/dmsg-discovery/dmsg-discovery.go & \
-go build cmd/dmsgget/dmsgget.go & \
-go build cmd/dmsgpty-cli/dmsgpty-cli.go & \
-go build cmd/dmsgpty-host/dmsgpty-host.go & \
-go build cmd/dmsgpty-ui/dmsgpty-ui.go & \
-go build cmd/dmsg-server/dmsg-server.go
-wait
-```
-
-optionally, any of those can be `go run` without explicitly compiling
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/1e8eede0-2ebf-4ec2-bc34-c3314136f52d)
 
 ### `dmsg-discovery`
 [dmsg-discovery](https://github.com/skycoin/dmsg/tree/develop/cmd/dmsg-discovery)
@@ -311,21 +311,10 @@ _Note: this service requires redis_
 
 Run the Dmsg Discovery server
 ```
-keys-gen | tee dmsgd-config.json
-dmsg-discovery --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
+skywire cli config gen-keys > dmsgd-config.json
+skywire dmsg disc --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
 ```
-
-Example `go run` the Dmsg Discovery server from source  in a bash shell
-
-```
-cd dmsg
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/dmsg-server/dmsg-server.go config gen -o dmsgd-conf.json ; head -n3 dmsgd-conf.json | tail -n2 | cut -d '"' -f4 | tee dmsgd-config.json ; rm dmsgd-conf.json
-go run cmd/dmsg-discovery/dmsg-discovery.go --addr ":9090" --redis "redis://localhost:6379" --sk $(tail -n1 dmsgd-config.json)
-```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/03c6788b-cd36-4f80-bba2-da179f09f78c)
 
 ### `dmsg-server`
 [dmsg-server](https://github.com/skycoin/dmsg/tree/develop/cmd/dmsg-server)
@@ -360,54 +349,20 @@ The default ports are shown.
 
 Run the dmsg server
 ```
-dmsg-server start dmsg-config.json
+skywire dmsg server start dmsg-config.json
 ```
 
-Example `go run` the Dmsg server from source  in a bash shell
-Please note that `git`, `jq`, `curl`, `sed` and `cut` are used in the following example.
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/784d03dc-6bc5-48b9-b267-d8f9bc35bdac)
 
-```
-cd dmsg
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/dmsg-server/dmsg-server.go config gen -o dmsg-config.json ; sed -i -e 's/dmsgd.skywire.skycoin.com/127.0.0.1:9090/g' -e "s/127.0.0.1:8081/$(curl -L https://ip.skycoin.com | jq '.ip_address' | cut -d '"' -f2):8081/g" dmsg-config.json
-go run cmd/dmsg-server/dmsg-server.go start dmsg-config.json
-```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/2aaa9abe-4235-4ed5-bc74-525067c1aac4)
+
+
 
 ## SKYWIRE-SERVICES Setup
 
 This section deals with services which can be built from the [skycoin/skywire-services](https://github.com/skycoin/skywire-services) repo
 
-To build all the binaries
-
-```
-cd skywire-services
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go build ./cmd/address-resolver/address-resolver.go & \
-go build ./cmd/config-bootstrapper/config.go & \
-go build ./cmd/dmsg-monitor/dmsg-monitor.go & \
-go build ./cmd/keys-gen/keys-gen.go & \
-go build ./cmd/liveness-checker/liveness-checker.go & \
-go build ./cmd/network-monitor/network-monitor.go & \
-go build ./cmd/node-visualizer/node-visualizer.go & \
-go build ./cmd/public-visor-monitor/public-visor-monitor.go & \
-go build ./cmd/route-finder/route-finder.go & \
-go build ./cmd/setup-node/setup-node.go & \
-go build ./cmd/sw-env/sw-env.go & \
-go build ./cmd/tpd-monitor/tpd-monitor.go & \
-go build ./cmd/transport-discovery/transport-discovery.go & \
-go build ./cmd/transport-setup/transport-setup.go & \
-go build ./cmd/vpn-lite-client/vpn-lite-client.go & \
-go build ./cmd/vpn-monitor/vpn-monitor.go
-wait
-```
-
-optionally, any of those can be `go run` without explicitly compiling
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/8c4c1487-bbd4-453a-a6bb-48933f9f2a71)
 
 ### `address-resolver`
 [address-resolver](https://github.com/skycoin/skywire-services/tree/develop/cmd/address-resolver)
@@ -416,21 +371,11 @@ _Note: this service requires redis_
 
 Run the address resolver
 ```
-keys-gen | tee ar-config.json
-address-resolver --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 ar-config.json)
+skywire cli config gen-keys > ar-config.json
+skywire svc ar --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 ar-config.json)
 ```
 
-Example `go run` the Address Resolver server from source in a bash shell.
-
-```
-cd skywire-services
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/keys-gen/keys-gen.go | tee ar-config.json
-go run cmd/address-resolver/address-resolver.go --addr ":9093" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 ar-config.json)
-```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/656ff446-e35a-4854-a81b-e273da6cd561)
 
 
 ### `route-finder`
@@ -442,21 +387,11 @@ sudo -iu postgres createdb rf
 ```
 Run the Route Finder
 ```
-keys-gen | tee rf-config.json
-PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" route-finder  --addr ":9092" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 rf-config.json)
+skywire cli config gen-keys >  rf-config.json
+PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" skywire svc rf  --addr ":9092" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 rf-config.json)
 ```
 
-Example `go run` the Route Finder server from source in a bash shell.
-
-```
-cd skywire-services
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/keys-gen/keys-gen.go | tee rf-config.json
-PG_USER="postgres" PG_DATABASE="rf" PG_PASSWORD="" go run cmd/route-finder/route-finder.go  --addr ":9092" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 rf-config.json)
-```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/7796136d-9749-49a9-b61b-6606e99e009e)
 
 ### `transport-discovery`
 [transport-discovery](https://github.com/skycoin/skywire-services/tree/develop/cmd/transport-discovery)
@@ -473,44 +408,12 @@ keys-gen | tee tpd-config.json
 PG_USER="postgres" PG_DATABASE="tpd" PG_PASSWORD="" transport-discovery  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 tpd-config.json)
 ```
 
-Example `go run` the Transport Discovery server from source in a bash shell.
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/69db3d4d-f05b-4415-aa0f-ddddbc8cc856)
 
-```
-cd skywire-services
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/keys-gen/keys-gen.go | tee tpd-config.json
-go run cmd/transport-discovery/transport-discovery.go  --addr ":9091" --redis "redis://localhost:6379" --dmsg-disc "http://127.0.0.1:9090" --sk $(tail -n1 tpd-config.json)
-```
 
 ## SKYWIRE Setup
 
 This section deals with services which can be built from the [skycoin/skywire](https://github.com/skycoin/skywire) repo
-
-To build all the binaries:
-
-_Please note: use make build to generate correctly versioned binaries_
-```
-cd skywire
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go build ./cmd/skywire-visor/skywire-visor.go & \
-go build ./cmd/skywire-cli/skywire-cli.go & \
-go build ./cmd/setup-node/setup-node.go & \
-go build ./cmd/apps/vpn-server/vpn-server.go & \
-go build ./cmd/apps/vpn-client/vpn-client.go & \
-go build ./cmd/apps/skysocks/skysocks.go & \
-go build ./cmd/apps/skysocks-client/skysocks-client.go & \
-go build ./cmd/apps/skychat/skychat.go
-wait
-```
-
-optionally, `go run` without explicitly compiling
-
 
 ### Route `setup-node`
 [setup-node](https://github.com/skycoin/skywire/tree/develop/cmd/setup-node)
@@ -529,38 +432,26 @@ Running route setup-node requires a config as follows:
 	"log_level": "debug"
 }
 ```
-This configuration can be parsed from the output of `skywire-cli config gen -n` and should be repopulated with the endpoints for your deployment.
+This configuration can be parsed from the output of `skywire-cli config gen -n` and should be repopulated with the endpoints for your deployment. Example using `jq`
+
+```
+skywire cli config gen -n --loglvl debug | jq '{public_key: .pk, secret_key: .sk, dmsg: {discovery: .dmsg.discovery, sessions_count: .dmsg.sessions_count, servers: .dmsg.servers}, transport_discovery: .transport.discovery, log_level: .log_level}'
+```
+
+[config generation for setup node](https://github.com/skycoin/skywire/issues/1761) will be provided in the future
 
 Run the setup-node
 ```
 setup-node setup-node-config.json
 ```
 
-Example `go run` the Route Setup node from source  in a bash shell
-
-```
-cd skywire
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-go run cmd/skywire-cli/skywire-cli.go config gen -n | head -n4 | sed -e '2d' -e 's/sk/secret_key/g' -e 's/pk/public_key/g' | tee setup-node-config.json
-echo "	\"dmsg\": {
-		\"discovery\": \"http://127.0.0.1:9090\",
-		\"sessions_count\": 1,
-		\"servers\": []
-	},
-	\"transport_discovery\": \"http://127.0.0.1:9091\",
-	\"log_level\": \"debug\"
-}" | tee -a setup-node-config.json
-go run cmd/setup-node/setup-node.go setup-node-config.json
-```
-
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/9d45d410-be5e-431f-89eb-09a7bddb6600)
 
 
 ### `skywire-visor`
 [skywire-visor](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-visor)
 [skywire-cli](https://github.com/skycoin/skywire/tree/develop/cmd/skywire-cli)
+[skywire](https://github.com/skycoin/skywire/tree/develop/cmd/skywire)
 
 A brief overview of the visor's use with a new deployment is as follows
 
@@ -568,174 +459,188 @@ Generate a config with defaults for your deployment:
 
 _Note the `-p` flag is used for the linux package installation path_
 ```
-skywire-cli config gen -bpirxa conf.magnetosphere.net -o skywire-config.json
+skywire-cli config gen -bpirxa conf.haltingstate.net -o skywire-config.json
 ```
 example output
 ```
 {
-	"version": "v1.3.7",
-	"sk": "b1dcb86168ae1282ad05f2fa9667106a9bc1373e80ab1c43dcb6952511ad62d8",
-	"pk": "02512556f8dbb9e29c42b5236c8d8c848f2a97e2fcf089db07deda0316bf1e341c",
-  "dmsg": {
-  	"discovery": "http://dmsgd.magnetosphere.net",
-  	"sessions_count": 1,
-  	"servers": []
-  },
-  "dmsgpty": {
-  	"dmsg_port": 22,
-  	"cli_network": "unix",
-  	"cli_address": "/tmp/dmsgpty.sock"
-  },
-  "skywire-tcp": {
-  	"pk_table": null,
-  	"listening_address": ":7777"
-  },
-  "transport": {
-  	"discovery": "http://tpd.magnetosphere.net",
-  	"address_resolver": "http://ar.magnetosphere.net",
-  	"public_autoconnect": true,
-  	"transport_setup_nodes": null,
-  	"log_store": {
-  		"type": "file",
-  		"location": "/opt/skywire/local/transport_logs",
-  		"rotation_interval": "168h0m0s"
-  	}
-  },
-  "routing": {
-  	"setup_nodes": [
-  		"024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438"
-  	],
-  	"route_finder": "http://rf.magnetosphere.net",
-  	"route_finder_timeout": "10s",
-  	"min_hops": 0
-  },
-  "uptime_tracker": {
-  	"addr": ""
-  },
-  "launcher": {
-  	"service_discovery": "http://sd.magnetosphere.net",
-  	"apps": [
-  		{
-  			"name": "vpn-client",
-  			"binary": "vpn-client",
-  			"args": [
-  				"-dns",
-  				"1.1.1.1"
-  			],
-  			"auto_start": false,
-  			"port": 43
-  		},
-  		{
-  			"name": "skychat",
-  			"binary": "skychat",
-  			"args": [
-  				"-addr",
-  				":8001"
-  			],
-  			"auto_start": true,
-  			"port": 1
-  			},
-  		{
-  			"name": "skysocks",
-  			"binary": "skysocks",
-  			"auto_start": true,
-  			"port": 3
-  		},
-  		{
-  			"name": "skysocks-client",
-  			"binary": "skysocks-client",
-  			"auto_start": false,
-  			"port": 13
-  		},
-  		{
-  			"name": "vpn-server",
-  			"binary": "vpn-server",
-  			"auto_start": false,
-  			"port": 44
-  		}
-  	],
-  	"server_addr": "localhost:5505",
-  	"bin_path": "/opt/skywire/apps",
-  	"display_node_ip": false
-  },
-  "hypervisors": [],
-  "cli_addr": "localhost:3435",
-  "log_level": "info",
-  "local_path": "/opt/skywire/local",
-  "dmsghttp_server_path": "/opt/skywire/local/custom",
-  "stun_servers": [
-  	"139.162.12.30:3478",
-  	"170.187.228.181:3478",
-  	"172.104.161.184:3478",
-  	"170.187.231.137:3478",
-  	"143.42.74.91:3478",
-  	"170.187.225.78:3478",
-  	"143.42.78.123:3478",
-  	"139.162.12.244:3478"
-  ],
-  "shutdown_timeout": "10s",
-  "restart_check_delay": "1s",
-  "is_public": false,
-  "persistent_transports": null,
-  "hypervisor": {
-  	"db_path": "/opt/skywire/users.db",
-  	"enable_auth": true,
-  	"cookies": {
-  		"hash_key": 7993b3add6e2f10626568dd8d634e9fcccbdf1b7de767bb2547fabb3be87ab2225438ad37139778169477f6e8ca9308607a5b5f8ebc6ad767e8d69e036b20b79",
-  		"block_key": "44143e7231bc37138854dcec93ae25f54ad7fbb400782b3e5e70f0cadc593175",
-  		"expires_duration": 43200000000000,
-  		"path": "/",
-  		"domain": ""
-  	},
-  	"dmsg_port": 46,
-  	"http_addr": ":8000",
-  	"enable_tls": false,
-  	"tls_cert_file": "./ssl/cert.pem",
-  	"tls_key_file": "./ssl/key.pem"
-  }
+	"version": "v1.3.20",
+	"sk": "30706958e03ef393418df2ed5a24da477730a0101da9b17959d4f1f231624877",
+	"pk": "03adb8df92b82320ee1507a131c8cde0a0fdf267b4e43ec1be1849e4f9dbc258c4",
+	"dmsg": {
+		"discovery": "http://dmsgd.haltingstate.net",
+		"sessions_count": 2,
+		"servers": [],
+		"servers_type": "all"
+	},
+	"dmsgpty": {
+		"dmsg_port": 22,
+		"cli_network": "unix",
+		"cli_address": "/tmp/dmsgpty.sock",
+		"whitelist": []
+	},
+	"skywire-tcp": {
+		"pk_table": null,
+		"listening_address": ":7777"
+	},
+	"transport": {
+		"discovery": "http://tpd.haltingstate.net",
+		"address_resolver": "http://ar.haltingstate.net",
+		"public_autoconnect": true,
+		"transport_setup": [
+			"03530b786c670fc7f5ab9021478c7ec9cd06a03f3ea1416c50c4a8889ef5bba80e",
+			"03271c0de223b80400d9bd4b7722b536a245eb6c9c3176781ee41e7bac8f9bad21",
+			"03a792e6d960c88c6fb2184ee4f16714c58b55f0746840617a19f7dd6e021699d9",
+			"0313efedc579f57f05d4f5bc3fbf0261f31e51cdcfde7e568169acf92c78868926",
+			"025c7bbf23e3441a36d7e8a1e9d717921e2a49a2ce035680fec4808a048d244c8a",
+			"030eb6967f6e23e81db0d214f925fc5ce3371e1b059fb8379ae3eb1edfc95e0b46",
+			"02e582c0a5e5563aad47f561b272e4c3a9f7ac716258b58e58eb50afd83c286a7f",
+			"02ddc6c749d6ed067bb68df19c9bcb1a58b7587464043b1707398ffa26a9746b26",
+			"03aa0b1c4e23616872058c11c6efba777c130a85eaf909945d697399a1eb08426d",
+			"03adb2c924987d8deef04d02bd95236c5ae172fe5dfe7273e0461d96bf4bc220be"
+		],
+		"log_store": {
+			"type": "file",
+			"location": "/opt/skywire/local/transport_logs",
+			"rotation_interval": "168h0m0s"
+		},
+		"stcpr_port": 0,
+		"sudph_port": 0
+	},
+	"routing": {
+		"route_setup_nodes": [
+			"0324579f003e6b4048bae2def4365e634d8e0e3054a20fc7af49daf2a179658557",
+			"024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438",
+			"03b87c282f6e9f70d97aeea90b07cf09864a235ef718725632d067873431dd1015"
+		],
+		"route_finder": "http://rf.haltingstate.net",
+		"route_finder_timeout": "10s",
+		"min_hops": 0
+	},
+	"uptime_tracker": {
+		"addr": "http://ut.skywire.skycoin.com"
+	},
+	"launcher": {
+		"service_discovery": "http://sd.haltingstate.net",
+		"apps": [
+			{
+				"name": "vpn-client",
+				"binary": "skywire",
+				"args": [
+					"app",
+					"vpn-client",
+					"--dns",
+					"1.1.1.1"
+				],
+				"auto_start": false,
+				"port": 43
+			},
+			{
+				"name": "skychat",
+				"binary": "skywire",
+				"args": [
+					"app",
+					"skychat",
+					"--addr",
+					":8001"
+				],
+				"auto_start": true,
+				"port": 1
+			},
+			{
+				"name": "skysocks",
+				"binary": "skywire",
+				"args": [
+					"app",
+					"skysocks"
+				],
+				"auto_start": true,
+				"port": 3
+			},
+			{
+				"name": "skysocks-client",
+				"binary": "skywire",
+				"args": [
+					"app",
+					"skysocks-client",
+					"--addr",
+					":1080"
+				],
+				"auto_start": false,
+				"port": 13
+			},
+			{
+				"name": "vpn-server",
+				"binary": "skywire",
+				"args": [
+					"app",
+					"vpn-server"
+				],
+				"auto_start": false,
+				"port": 44
+			}
+		],
+		"server_addr": "localhost:5505",
+		"bin_path": "/opt/skywire/bin",
+		"display_node_ip": false
+	},
+	"survey_whitelist": [
+		"02b5ee5333aa6b7f5fc623b7d5f35f505cb7f974e98a70751cf41962f84c8c4637",
+		"03714c8bdaee0fb48f47babbc47c33e1880752b6620317c9d56b30f3b0ff58a9c3",
+		"020d35bbaf0a5abc8ec0ba33cde219fde734c63e7202098e1f9a6cf9daaeee55a9",
+		"027f7dec979482f418f01dfabddbd750ad036c579a16422125dd9a313eaa59c8e1",
+		"031d4cf1b7ab4c789b56c769f2888e4a61c778dfa5fe7e5cd0217fc41660b2eb65",
+		"0327e2cf1d2e516ecbfdbd616a87489cc92a73af97335d5c8c29eafb5d8882264a",
+		"03abbb3eff140cf3dce468b3fa5a28c80fa02c6703d7b952be6faaf2050990ebf4"
+	],
+	"hypervisors": [],
+	"cli_addr": "localhost:3435",
+	"log_level": "",
+	"local_path": "/opt/skywire/local",
+	"dmsghttp_server_path": "/opt/skywire/local/custom",
+	"stun_servers": [
+		"192.53.117.238:3478",
+		"170.187.228.44:3478",
+		"192.53.117.237:3478",
+		"192.53.117.146:3478",
+		"192.53.117.60:3478",
+		"192.53.117.124:3478",
+		"170.187.228.178:3478",
+		"170.187.225.246:3478"
+	],
+	"shutdown_timeout": "10s",
+	"is_public": false,
+	"persistent_transports": null
 }
 ```
 
 __Note the default ports:__
 ```
-:7777
-:3435
-:5505
-:8000
-:8001
+stcp	:7777
+cli RPC	:3435
+appsrv	:5505
+HVUI	:8000
+skychat	:8001
 ```
-__Note: tcp, udp, and http ports in the config will always have a colon and will never be low ports!__
+ports which are by default 0 are selected at random
+```
+		"stcpr_port": 0,
+		"sudph_port": 0
+```
+__Note: tcp, udp, and http ports in the config will always have a colon and will never be low ports by default!__
 
 
 The other ports are `virtual` dmsg ports
 
 Run skywire-visor
 ```
-skywire-visor -c skywire-config.json
+skywire visor -c skywire-config.json
 ```
 
-Example `go run` the Skywire Visor (node) from source  in a bash shell
-_Note: substitute your own service conf URL in place of conf.magnetosphere.net for `skywire-cli config gen`_
-_Note: the vpn client requires root; the visor is typically run as root._
-_Note: running the visor as root or with sudo permissions in the user space will create files and folders as root._
-```
-cd skywire
-#checkout a commit or a branch
-git checkout develop
-#sync the dependencies just in case
-go mod tidy ; go mod vendor
-[[ -d apps ]] && rm -r apps || true
-mkdir -p apps
-echo -e '#!/bin/bash \n go run ../../cmd/apps/skychat/skychat.go' | tee apps/skychat
-echo -e '#!/bin/bash \n go run ../../cmd/apps/skysocks/skysocks.go' | tee apps/skysocks
-echo -e '#!/bin/bash \n go run ../../cmd/apps/skysocks-client/skysocks-client.go' | tee apps/skysocks-client
-echo -e '#!/bin/bash \n go run ../../cmd/apps/vpn-client/vpn-client.go' | tee apps/vpn-client
-echo -e '#!/bin/bash \n go run ../../cmd/apps/vpn-server/vpn-server.go' | tee apps/vpn-server
-chmod +x ./apps/*
-go run cmd/skywire-cli/skywire-cli.go config gen -bixra conf.magnetosphere.net -o skywire-config.json
-sudo go run ./cmd/skywire-visor/skywire-visor.go -c skywire-config.json || true
-```
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/438a0829-6205-4e17-b0d1-e7dfe021ce2d)
 
+
+![image](https://github.com/skycoin/skywire-deployment/assets/36607567/abf16ece-48f3-4359-ac82-dbfcce810927)
 
 ## Using Dmsg to connect to the deployment
 
@@ -831,29 +736,29 @@ The following [caddy-server](https://caddyserver.com/) [`Caddyfile`](https://cad
         -Server
     }
 }
-dmsgd.magnetosphere.net {
+dmsgd.haltingstate.net {
 reverse_proxy http://127.0.0.1:9090
 import common
 }
-ar.magnetosphere.net {
+ar.haltingstate.net {
 reverse_proxy http://127.0.0.1:9093
 import common
 }
-rf.magnetosphere.net {
+rf.haltingstate.net {
 reverse_proxy http://127.0.0.1:9092
 import common
 }
-tpd.magnetosphere.net {
+tpd.haltingstate.net {
 reverse_proxy http://127.0.0.1:9091
 import common
 }
-sd.magnetosphere.net {
+sd.haltingstate.net {
 reverse_proxy http://127.0.0.1:9098
 import common
 }
-conf.magnetosphere.net {
+conf.haltingstate.net {
 header Content-Type	application/json
-respond {"dmsg_discovery":"http://dmsgd.magnetosphere.net","transport_discovery":"http://tpd.magnetosphere.net","address_resolver":"http://ar.magnetosphere.net","route_finder":"http://rf.magnetosphere.net","setup_nodes":["024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438"],"uptime_tracker":"http://ut.skywire.skycoin.com","service_discovery":"http://sd.magnetosphere.net","stun_servers":["139.162.12.30:3478","170.187.228.181:3478","172.104.161.184:3478","170.187.231.137:3478","143.42.74.91:3478","170.187.225.78:3478","143.42.78.123:3478","139.162.12.244:3478"],"dns_server":"1.1.1.1"}
+respond {"dmsg_discovery":"http://dmsgd.haltingstate.net","transport_discovery":"http://tpd.haltingstate.net","address_resolver":"http://ar.haltingstate.net","route_finder":"http://rf.haltingstate.net","setup_nodes":["024fbd3997d4260f731b01abcfce60b8967a6d4c6a11d1008812810ea1437ce438"],"uptime_tracker":"http://ut.skywire.skycoin.com","service_discovery":"http://sd.haltingstate.net","stun_servers":["139.162.12.30:3478","170.187.228.181:3478","172.104.161.184:3478","170.187.231.137:3478","143.42.74.91:3478","170.187.225.78:3478","143.42.78.123:3478","139.162.12.244:3478"],"dns_server":"1.1.1.1"}
 import common
 }
 ```
